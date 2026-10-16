@@ -1,0 +1,12 @@
+# данные и секреты — никогда в репозиторий
+out/
+profile.json
+products.csv
+photos/
+*.session
+*.api.json
+.env
+
+# python
+__pycache__/
+*.pyc
