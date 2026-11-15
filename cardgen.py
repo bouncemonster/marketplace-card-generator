@@ -394,15 +394,18 @@ QA_RUBRIC = """Ты — ревизор e-commerce карточек. Первое
 {{
  "product_match": bool, "product_color_ok": bool, "text_readable_ru": bool,
  "follows_design_brief": bool, "no_sku_leak": bool, "headline_legible": bool,
- "title_product_overlap": bool, "font_style_ok": bool,
+ "title_product_overlap": bool, "font_style_ok": bool, "no_invented_facts": bool,
  "garbled_words": ["..."],
  "verdict": "pass|soft|hard", "hard_fails": ["ключи с false, считаем грубым браком"]
 }}
 Грубым браком (verdict=hard) считай: product_match=false, product_color_ok=false,
-no_sku_leak=false, text_readable_ru=false. Остальное — soft, если не портит покупку.
+no_sku_leak=false, text_readable_ru=false, no_invented_facts=false.
+no_invented_facts: свойства и числа подтверждены исходным фото или описанием товара;
+дизайн-бриф сам по себе не подтверждает свойства. Остальное — soft, если не портит покупку.
 {language}."""
 
-QA_HARD_KEYS = ("product_match", "product_color_ok", "no_sku_leak", "text_readable_ru")
+QA_HARD_KEYS = ("product_match", "product_color_ok", "no_sku_leak", "text_readable_ru",
+                "no_invented_facts")
 # Приёмы, которые движок физически не выполняет, понижаем до soft — иначе зацикливание
 # перегенераций. Seedream: товар-поверх-заголовка и перетасовка пар фраз в плашках.
 ENGINE_SOFT_KEYS = {"seedream": ("title_product_overlap", "follows_design_brief")}
@@ -464,6 +467,7 @@ def vlm_qa(prod: Dict[str, Any], photo_path: str, card_path: str, key: str, prof
                       + design_text_lines(design) + "\n\n")
     messages = [{"role": "user", "content": [
         {"type": "text", "text": f"Товар: {prod['title']}\n"
+                                 + f"Описание товара: {clean_html(prod.get('description') or '')}\n"
                                  + QA_RUBRIC.format(brief_note=brief_note, language=prof["language"])},
         {"type": "text", "text": "Изображение 1 — ОРИГИНАЛЬНОЕ фото товара:"},
         {"type": "image_url", "image_url": {"url": photo_data_url(photo_path, 1024, 82)}},
@@ -481,6 +485,7 @@ DEFECT_ADDENDUM = {
     "product_match": "Товар искажён/заменён: верни ТОЧНО тот же товар с фото-референса.",
     "product_color_ok": "Цвет/материал товара изменён: верни оригинальный цвет.",
     "no_sku_leak": "В кадр попал артикул/SKU/ID/цена: полностью убери служебные строки.",
+    "no_invented_facts": "Выдуманные характеристики: убери свойства и числа, не подтверждённые исходным фото или описанием товара.",
     "text_readable_ru": "Русский текст нечитаем/с ошибками: перерисуй все надписи аккуратно, "
                         "строго из кавычек, без битых и выдуманных слов.",
     "title_product_overlap": "Товар должен перекрывать правый нижний край заголовка (10-25% ширины), "
